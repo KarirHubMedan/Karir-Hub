@@ -1,0 +1,44 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile information",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Full name of the user" },
+        "email": { "type": "string", "format": "email", "description": "Email address" },
+        "role": { "type": "string", "enum": ["user", "admin"], "description": "User role" }
+      },
+      "required": ["name", "email", "role"]
+    },
+    "Job": {
+      "title": "Job",
+      "description": "Job listing information",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "description": "Job title" },
+        "company": { "type": "string", "description": "Company name" },
+        "location": { "type": "string", "description": "Job location" },
+        "type": { "type": "string", "description": "Job type (e.g., Full-time)" },
+        "salary": { "type": "string", "description": "Estimated salary" },
+        "description": { "type": "string", "description": "Job description" },
+        "category": { "type": "string", "description": "Job category" },
+        "externalUrl": { "type": "string", "format": "uri", "description": "External link to original job post" },
+        "postedAt": { "type": "string", "format": "date-time", "description": "When the job was posted" },
+        "postedBy": { "type": "string", "description": "Name of the person who posted" },
+        "authorUid": { "type": "string", "description": "UID of the user who posted" }
+      },
+      "required": ["title", "company", "location", "type", "description", "category", "postedAt", "postedBy", "authorUid"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profiles"
+    },
+    "/jobs/{jobId}": {
+      "schema": "Job",
+      "description": "Job listings"
+    }
+  }
+}

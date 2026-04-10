@@ -1,0 +1,109 @@
+// ===============================================================
+// Assumed Data Model
+// ===============================================================
+//
+// Collection: users
+// Document ID: {userId} (Firebase Auth UID)
+// Fields:
+//   - name: string (required, 2-50 chars)
+//   - email: string (required, valid email)
+//   - role: string (required, ['user', 'admin'])
+//
+// Collection: jobs
+// Document ID: {jobId} (Random ID)
+// Fields:
+//   - title: string (required, 2-100 chars)
+//   - company: string (required, 2-100 chars)
+//   - location: string (required, 2-100 chars)
+//   - type: string (required)
+//   - salary: string (optional, < 50 chars)
+//   - description: string (required, < 5000 chars)
+//   - category: string (required)
+//   - externalUrl: string (optional, valid URL)
+//   - postedAt: timestamp (required)
+//   - postedBy: string (required, name of author)
+//   - authorUid: string (required, UID of author)
+//
+// ===============================================================
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && 
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+         (request.auth.token.email.lower() == "ahmadfauziwijaya92@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    function isValidEmail(email) {
+      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    function isValidUrl(url) {
+      return url == null || (url is string && (url.matches("^https://.*") || url.matches("^http://.*")));
+    }
+
+    // ===============================================================
+    // Collection Rules
+    // ===============================================================
+
+    match /users/{userId} {
+      function isValidUser(data) {
+        return data.keys().hasAll(['name', 'email', 'role']) &&
+               data.name is string && data.name.size() >= 2 && data.name.size() <= 50 &&
+               isValidEmail(data.email) &&
+               data.role in ['user', 'admin'];
+      }
+
+      // Users can only read their own profile, unless they are admin
+      // Note: If we want public profiles, we'd need a separate collection or denormalization
+      allow read: if isOwner(userId) || isAdmin();
+      
+      // Create: user can create their own profile as 'user' role
+      allow create: if isOwner(userId) && isValidUser(request.resource.data) && 
+                    (request.resource.data.role == 'user' || isAdmin());
+      
+      // Update: user can update their own profile but cannot change their role unless admin
+      allow update: if isOwner(userId) && isValidUser(request.resource.data) && 
+                    (request.resource.data.role == resource.data.role || isAdmin());
+    }
+
+    match /jobs/{jobId} {
+      function isValidJob(data) {
+        return data.keys().hasAll(['title', 'company', 'location', 'type', 'description', 'category', 'postedAt', 'postedBy', 'authorUid']) &&
+               data.title is string && data.title.size() >= 2 && data.title.size() <= 100 &&
+               data.company is string && data.company.size() >= 2 && data.company.size() <= 100 &&
+               data.location is string && data.location.size() >= 2 && data.location.size() <= 100 &&
+               data.description is string && data.description.size() <= 5000 &&
+               isValidUrl(data.externalUrl) &&
+               data.authorUid == request.auth.uid;
+      }
+
+      // Jobs are public
+      allow read: if true;
+      
+      // Create: any authenticated user can post a job
+      allow create: if isAuthenticated() && isValidJob(request.resource.data);
+      
+      // Update: only author or admin can update
+      allow update: if (isAuthenticated() && (request.auth.uid == resource.data.authorUid || isAdmin())) && 
+                    isValidJob(request.resource.data);
+      
+      // Delete: only admin can delete (as per current app logic)
+      allow delete: if isAdmin();
+    }
+  }
+}

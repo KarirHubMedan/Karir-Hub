@@ -1,11 +1,41 @@
-<div align="center">
+# KarirHub Medan 💼
 
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+Platform lowongan kerja modern yang menghubungkan pencari kerja dan perusahaan di wilayah Medan dan sekitarnya. Dibangun dengan teknologi web terbaru untuk pengalaman yang cepat, aman, dan responsif.
 
-  <h1>Built with AI Studio</h2>
+## ✨ Fitur Utama
+- **Pencarian Lowongan**: Cari pekerjaan berdasarkan posisi, perusahaan, atau kategori.
+- **Sistem Autentikasi**: Login aman menggunakan Firebase (Mendukung Google Login & Email).
+- **Verifikasi Email**: Memastikan keamanan dengan sistem verifikasi email untuk pemasang lowongan.
+- **Dashboard Admin**: Fitur khusus admin untuk mengelola dan menghapus lowongan yang tidak sesuai.
+- **Real-time Database**: Data lowongan diperbarui secara instan tanpa perlu refresh halaman.
 
-  <p>The fastest path from prompt to production with Gemini.</p>
+## 🚀 Teknologi yang Digunakan
+- **Frontend**: React.js, TypeScript, Tailwind CSS.
+- **Backend/Database**: Firebase Firestore.
+- **Autentikasi**: Firebase Auth.
+- **Animasi**: Framer Motion.
+- **Icons**: Lucide React.
 
-  <a href="https://aistudio.google.com/apps">Start building</a>
+## 🛠️ Cara Menjalankan Secara Lokal
+1. Clone repositori ini:
+   ```bash
+   git clone https://github.com/USERNAME/KarirHubMedan.git
+   ```
+2. Masuk ke direktori proyek:
+   ```bash
+   cd KarirHubMedan
+   ```
+3. Install dependensi:
+   ```bash
+   npm install
+   ```
+4. Jalankan aplikasi:
+   ```bash
+   npm run dev
+   ```
 
-</div>
+## 📄 Lisensi
+Proyek ini dibuat untuk tujuan uji coba dan pengembangan.
+
+---
+Dibuat dengan ❤️ untuk komunitas pencari kerja di Medan.
