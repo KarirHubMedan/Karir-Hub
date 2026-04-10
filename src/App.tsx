@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, MapPin, Briefcase, Plus, User, LogOut, Menu, X, Building, DollarSign, Clock, Shield, Trash2, ExternalLink, Mail, AlertCircle } from 'lucide-react';
+import { Search, MapPin, Briefcase, Plus, User, LogOut, Menu, X, Building, DollarSign, Clock, Shield, Trash2, ExternalLink, Mail, AlertCircle, LayoutDashboard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -126,6 +126,7 @@ export default function App() {
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [isPostJobOpen, setIsPostJobOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isAdminView, setIsAdminView] = useState(false);
 
   // Test Connection
   useEffect(() => {
@@ -150,15 +151,25 @@ export default function App() {
         try {
           // Fetch user profile from Firestore
           const userDoc = await getDoc(doc(db, 'users', fUser.uid));
+          const isAdminEmail = fUser.email?.toLowerCase() === 'ahmadfauziwijaya92@gmail.com';
+          
           if (userDoc.exists()) {
-            setUser(userDoc.data() as UserProfile);
+            const userData = userDoc.data() as UserProfile;
+            // Force admin role if email matches but role is still 'user'
+            if (isAdminEmail && userData.role !== 'admin') {
+              const updatedUser = { ...userData, role: 'admin' as const };
+              await setDoc(doc(db, 'users', fUser.uid), updatedUser);
+              setUser(updatedUser);
+            } else {
+              setUser(userData);
+            }
           } else {
             // If profile doesn't exist (e.g. first time login), create a basic one
             const newUser: UserProfile = {
               id: fUser.uid,
               name: fUser.displayName || 'User',
               email: fUser.email || '',
-              role: fUser.email?.toLowerCase() === 'ahmadfauziwijaya92@gmail.com' ? 'admin' : 'user'
+              role: isAdminEmail ? 'admin' : 'user'
             };
             await setDoc(doc(db, 'users', fUser.uid), newUser);
             setUser(newUser);
@@ -379,6 +390,11 @@ export default function App() {
         </div>
       )}
 
+      {isAdminView && user?.role === 'admin' && (
+        <div className="bg-amber-500 py-1 text-center text-[10px] font-bold uppercase tracking-widest text-white">
+          Anda sedang dalam Mode Administrator
+        </div>
+      )}
       {/* Navigation */}
       <nav className="sticky top-0 z-50 border-b border-zinc-200 bg-white/80 backdrop-blur-md">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
@@ -397,6 +413,17 @@ export default function App() {
             
             {user ? (
               <div className="flex items-center gap-4">
+                {user.role === 'admin' && (
+                  <Button 
+                    variant={isAdminView ? "default" : "ghost"} 
+                    size="sm"
+                    className={`gap-2 rounded-full ${isAdminView ? 'bg-zinc-900 text-white' : 'text-zinc-500'}`}
+                    onClick={() => setIsAdminView(!isAdminView)}
+                  >
+                    <LayoutDashboard size={16} />
+                    <span className="hidden lg:inline">{isAdminView ? 'Lihat Web' : 'Dashboard Admin'}</span>
+                  </Button>
+                )}
                 <div className="flex items-center gap-2">
                   <div className={`flex h-8 w-8 items-center justify-center rounded-full ${user.role === 'admin' ? 'bg-amber-100 text-amber-600' : 'bg-zinc-100 text-zinc-600'}`}>
                     {user.role === 'admin' ? <Shield size={16} /> : <User size={16} />}
@@ -637,6 +664,19 @@ export default function App() {
               <div className="flex flex-col gap-4 p-4">
                 <a href="#" className="text-lg font-medium">Cari Kerja</a>
                 <a href="#" className="text-lg font-medium">Perusahaan</a>
+                {user?.role === 'admin' && (
+                  <Button 
+                    variant={isAdminView ? "default" : "outline"} 
+                    className="w-full justify-start gap-2"
+                    onClick={() => {
+                      setIsAdminView(!isAdminView);
+                      setIsMenuOpen(false);
+                    }}
+                  >
+                    <LayoutDashboard size={18} />
+                    {isAdminView ? 'Lihat Website' : 'Dashboard Admin'}
+                  </Button>
+                )}
                 {user ? (
                   <div className="flex items-center justify-between rounded-lg bg-zinc-50 p-3">
                     <div className="flex items-center gap-2">
@@ -661,63 +701,95 @@ export default function App() {
         </AnimatePresence>
       </nav>
 
-      <main>
+      <main className={isAdminView && user?.role === 'admin' ? 'bg-zinc-50' : ''}>
         {/* Hero Section */}
-        <section className="relative overflow-hidden bg-zinc-900 py-20 text-white sm:py-32">
-          <div className="absolute inset-0 opacity-20">
-            <div className="absolute -left-20 -top-20 h-96 w-96 rounded-full bg-zinc-500 blur-3xl" />
-            <div className="absolute -right-20 -bottom-20 h-96 w-96 rounded-full bg-zinc-400 blur-3xl" />
-          </div>
-          
-          <div className="relative mx-auto max-w-7xl px-4 text-center sm:px-6 lg:px-8">
-            <motion.h1 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="text-4xl font-extrabold tracking-tight sm:text-6xl"
-            >
-              Temukan Karir Impianmu <br />
-              <span className="text-zinc-400">Dimulai Dari Sini.</span>
-            </motion.h1>
-            <motion.p 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-              className="mx-auto mt-6 max-w-2xl text-lg text-zinc-400"
-            >
-              Ribuan lowongan kerja dari perusahaan ternama menantimu. 
-              Gunakan KarirHub untuk mempermudah pencarian kerjamu.
-            </motion.p>
+        {isAdminView && user?.role === 'admin' ? (
+          <section className="relative overflow-hidden bg-zinc-900 py-16 text-white">
+            <div className="absolute inset-0 opacity-10">
+              <div className="absolute -left-20 -top-20 h-64 w-64 rounded-full bg-white blur-3xl" />
+              <div className="absolute -right-20 -bottom-20 h-64 w-64 rounded-full bg-white blur-3xl" />
+            </div>
+            <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+              <div className="flex flex-col items-center justify-between gap-8 md:flex-row">
+                <div className="max-w-2xl">
+                  <Badge className="mb-4 bg-amber-500 text-white hover:bg-amber-600 border-none">Mode Administrator</Badge>
+                  <h1 className="text-4xl font-black tracking-tight sm:text-6xl">
+                    Panel Kendali <span className="text-amber-500">KarirHub</span>
+                  </h1>
+                  <p className="mt-6 text-lg text-zinc-400">
+                    Selamat datang kembali, Admin. Pantau statistik, kelola lowongan, dan pastikan kualitas konten tetap terjaga untuk warga Medan.
+                  </p>
+                </div>
+                <div className="grid grid-cols-2 gap-4 w-full md:w-auto">
+                  <div className="rounded-2xl bg-white/5 p-6 backdrop-blur-sm border border-white/10">
+                    <div className="text-3xl font-bold text-amber-500">{jobs.length}</div>
+                    <div className="text-xs text-zinc-500 uppercase tracking-widest mt-1">Total Lowongan</div>
+                  </div>
+                  <div className="rounded-2xl bg-white/5 p-6 backdrop-blur-sm border border-white/10">
+                    <div className="text-3xl font-bold text-amber-500">{new Set(jobs.map(j => j.company)).size}</div>
+                    <div className="text-xs text-zinc-500 uppercase tracking-widest mt-1">Perusahaan</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+        ) : (
+          <section className="relative overflow-hidden bg-zinc-900 py-20 text-white sm:py-32">
+            <div className="absolute inset-0 opacity-20">
+              <div className="absolute -left-20 -top-20 h-96 w-96 rounded-full bg-zinc-500 blur-3xl" />
+              <div className="absolute -right-20 -bottom-20 h-96 w-96 rounded-full bg-zinc-400 blur-3xl" />
+            </div>
+            
+            <div className="relative mx-auto max-w-7xl px-4 text-center sm:px-6 lg:px-8">
+              <motion.h1 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="text-4xl font-extrabold tracking-tight sm:text-6xl"
+              >
+                Temukan Karir Impianmu <br />
+                <span className="text-zinc-400">Dimulai Dari Sini.</span>
+              </motion.h1>
+              <motion.p 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+                className="mx-auto mt-6 max-w-2xl text-lg text-zinc-400"
+              >
+                Ribuan lowongan kerja dari perusahaan ternama menantimu. 
+                Gunakan KarirHub untuk mempermudah pencarian kerjamu.
+              </motion.p>
 
-            {/* Search Bar */}
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="mx-auto mt-10 flex max-w-3xl flex-col gap-2 rounded-2xl bg-white p-2 shadow-2xl sm:flex-row sm:items-center"
-            >
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" size={20} />
-                <Input 
-                  placeholder="Cari posisi atau perusahaan..." 
-                  className="border-none bg-transparent pl-10 text-zinc-900 focus-visible:ring-0"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
-              <div className="hidden h-8 w-px bg-zinc-200 sm:block" />
-              <div className="relative flex-1">
-                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" size={20} />
-                <Input 
-                  placeholder="Lokasi (Jakarta, Bandung...)" 
-                  className="border-none bg-transparent pl-10 text-zinc-900 focus-visible:ring-0"
-                />
-              </div>
-              <Button className="rounded-xl px-8 py-6 text-lg font-bold">
-                Cari
-              </Button>
-            </motion.div>
-          </div>
-        </section>
+              {/* Search Bar */}
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+                className="mx-auto mt-10 flex max-w-3xl flex-col gap-2 rounded-2xl bg-white p-2 shadow-2xl sm:flex-row sm:items-center"
+              >
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" size={20} />
+                  <Input 
+                    placeholder="Cari posisi atau perusahaan..." 
+                    className="border-none bg-transparent pl-10 text-zinc-900 focus-visible:ring-0"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                </div>
+                <div className="hidden h-8 w-px bg-zinc-200 sm:block" />
+                <div className="relative flex-1">
+                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" size={20} />
+                  <Input 
+                    placeholder="Lokasi (Jakarta, Bandung...)" 
+                    className="border-none bg-transparent pl-10 text-zinc-900 focus-visible:ring-0"
+                  />
+                </div>
+                <Button className="rounded-xl px-8 py-6 text-lg font-bold">
+                  Cari
+                </Button>
+              </motion.div>
+            </div>
+          </section>
+        )}
 
         {/* Job Listings Section */}
         <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
@@ -759,6 +831,11 @@ export default function App() {
                           {job.type}
                         </Badge>
                         <div className="flex items-center gap-2">
+                          {isAdminView && (
+                            <Badge variant="outline" className="border-amber-500 text-amber-600 bg-amber-50">
+                              Admin Control
+                            </Badge>
+                          )}
                           <span className="text-xs text-zinc-400">
                             {formatDistanceToNow(new Date(job.postedAt), { addSuffix: true, locale: id })}
                           </span>
