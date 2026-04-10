@@ -127,6 +127,7 @@ export default function App() {
   const [isPostJobOpen, setIsPostJobOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isAdminView, setIsAdminView] = useState(false);
+  const [selectedJob, setSelectedJob] = useState<JobListing | null>(null);
 
   // Test Connection
   useEffect(() => {
@@ -382,7 +383,19 @@ export default function App() {
               variant="link" 
               size="sm" 
               className="h-auto p-0 text-xs text-white underline"
-              onClick={() => sendEmailVerification(firebaseUser).then(() => toast.success('Email verifikasi dikirim ulang.'))}
+              onClick={async () => {
+                try {
+                  await sendEmailVerification(firebaseUser);
+                  toast.success('Email verifikasi dikirim ulang. Silakan cek kotak masuk atau folder spam Anda.');
+                } catch (error: any) {
+                  console.error("Resend Verification Error:", error);
+                  if (error.code === 'auth/too-many-requests') {
+                    toast.error('Terlalu banyak permintaan. Silakan tunggu beberapa saat lagi.');
+                  } else {
+                    toast.error('Gagal mengirim ulang email verifikasi.');
+                  }
+                }
+              }}
             >
               Kirim Ulang
             </Button>
@@ -823,6 +836,7 @@ export default function App() {
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.9 }}
+                  onClick={() => setSelectedJob(job)}
                 >
                   <Card className="group h-full cursor-pointer border-zinc-200 transition-all hover:border-zinc-900 hover:shadow-xl">
                     <CardHeader>
@@ -908,6 +922,85 @@ export default function App() {
               ))}
             </AnimatePresence>
           </div>
+
+          {/* Job Detail Dialog */}
+          <Dialog open={!!selectedJob} onOpenChange={(open) => !open && setSelectedJob(null)}>
+            <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[700px]">
+              {selectedJob && (
+                <>
+                  <DialogHeader>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Badge variant="secondary">{selectedJob.type}</Badge>
+                      <Badge variant="outline">{selectedJob.category}</Badge>
+                    </div>
+                    <DialogTitle className="text-3xl font-black">{selectedJob.title}</DialogTitle>
+                    <div className="flex items-center gap-2 text-lg font-medium text-zinc-600">
+                      <Building size={18} />
+                      {selectedJob.company}
+                    </div>
+                  </DialogHeader>
+                  
+                  <div className="grid gap-6 py-6">
+                    <div className="flex flex-wrap gap-4 rounded-2xl bg-zinc-50 p-6">
+                      <div className="flex items-center gap-2">
+                        <MapPin size={20} className="text-zinc-400" />
+                        <span className="font-medium">{selectedJob.location}</span>
+                      </div>
+                      {selectedJob.salary && (
+                        <div className="flex items-center gap-2">
+                          <DollarSign size={20} className="text-zinc-400" />
+                          <span className="font-bold text-zinc-900">{selectedJob.salary}</span>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-2">
+                        <Clock size={20} className="text-zinc-400" />
+                        <span>Dipasang {formatDistanceToNow(new Date(selectedJob.postedAt), { addSuffix: true, locale: id })}</span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-4">
+                      <h4 className="text-lg font-bold">Deskripsi Pekerjaan</h4>
+                      <div className="whitespace-pre-wrap text-zinc-600 leading-relaxed">
+                        {selectedJob.description}
+                      </div>
+                    </div>
+
+                    {selectedJob.postedBy && (
+                      <div className="flex items-center gap-2 border-t border-zinc-100 pt-6 text-sm text-zinc-400">
+                        <User size={16} />
+                        <span>Dipasang oleh: <span className="font-medium text-zinc-600">{selectedJob.postedBy}</span></span>
+                      </div>
+                    )}
+                  </div>
+
+                  <DialogFooter className="flex-col sm:flex-row gap-3">
+                    {selectedJob.externalUrl ? (
+                      <Button 
+                        asChild
+                        className="w-full sm:flex-1 gap-2 bg-zinc-900 py-6 text-lg"
+                      >
+                        <a href={selectedJob.externalUrl} target="_blank" rel="noopener noreferrer">
+                          Lamar Sekarang
+                          <ExternalLink size={18} />
+                        </a>
+                      </Button>
+                    ) : (
+                      <Button className="w-full sm:flex-1 py-6 text-lg bg-zinc-900">
+                        Lamar Pekerjaan Ini
+                      </Button>
+                    )}
+                    <Button 
+                      variant="outline" 
+                      className="w-full sm:w-auto py-6"
+                      onClick={() => setSelectedJob(null)}
+                    >
+                      Tutup
+                    </Button>
+                  </DialogFooter>
+                </>
+              )}
+            </DialogContent>
+          </Dialog>
 
           {filteredJobs.length === 0 && (
             <div className="flex flex-col items-center justify-center py-20 text-center">
