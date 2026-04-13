@@ -105,5 +105,16 @@ service cloud.firestore {
       // Delete: only admin can delete (as per current app logic)
       allow delete: if isAdmin();
     }
+
+    match /stats/visitors {
+      // Only admin can see the total visitor count
+      allow read: if isAdmin();
+      
+      // Anyone can increment the visitor count
+      // We use a simple check to ensure they only increment by 1
+      allow create: if true;
+      allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['count']) &&
+                    request.resource.data.count == resource.data.count + 1;
+    }
   }
 }

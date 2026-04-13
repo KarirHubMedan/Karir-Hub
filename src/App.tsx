@@ -56,7 +56,8 @@ import {
   getDoc,
   serverTimestamp,
   Timestamp,
-  getDocFromServer
+  getDocFromServer,
+  increment
 } from 'firebase/firestore';
 
 enum OperationType {
@@ -128,6 +129,7 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [isAdminView, setIsAdminView] = useState(false);
   const [selectedJob, setSelectedJob] = useState<JobListing | null>(null);
+  const [visitorCount, setVisitorCount] = useState<number>(0);
 
   // Test Connection
   useEffect(() => {
@@ -203,6 +205,36 @@ export default function App() {
 
     return () => unsubscribe();
   }, []);
+
+  // Visitor Counter Logic
+  useEffect(() => {
+    const incrementVisitors = async () => {
+      // Check if this is a new session
+      const hasVisited = sessionStorage.getItem('hasVisited');
+      if (!hasVisited) {
+        try {
+          const visitorRef = doc(db, 'stats', 'visitors');
+          await setDoc(visitorRef, { count: increment(1) }, { merge: true });
+          sessionStorage.setItem('hasVisited', 'true');
+        } catch (error) {
+          console.error("Error incrementing visitors:", error);
+        }
+      }
+    };
+    incrementVisitors();
+  }, []);
+
+  // Real-time Visitor Listener (Admin only)
+  useEffect(() => {
+    if (user?.role === 'admin') {
+      const unsubscribe = onSnapshot(doc(db, 'stats', 'visitors'), (doc) => {
+        if (doc.exists()) {
+          setVisitorCount(doc.data().count || 0);
+        }
+      });
+      return () => unsubscribe();
+    }
+  }, [user]);
 
   const handleGoogleLogin = async () => {
     const provider = new GoogleAuthProvider();
@@ -733,7 +765,7 @@ export default function App() {
                     Selamat datang kembali, Admin. Pantau statistik, kelola lowongan, dan pastikan kualitas konten tetap terjaga untuk warga Medan.
                   </p>
                 </div>
-                <div className="grid grid-cols-2 gap-4 w-full md:w-auto">
+                <div className="grid grid-cols-1 gap-4 w-full md:w-auto sm:grid-cols-3">
                   <div className="rounded-2xl bg-white/5 p-6 backdrop-blur-sm border border-white/10">
                     <div className="text-3xl font-bold text-amber-500">{jobs.length}</div>
                     <div className="text-xs text-zinc-500 uppercase tracking-widest mt-1">Total Lowongan</div>
@@ -741,6 +773,10 @@ export default function App() {
                   <div className="rounded-2xl bg-white/5 p-6 backdrop-blur-sm border border-white/10">
                     <div className="text-3xl font-bold text-amber-500">{new Set(jobs.map(j => j.company)).size}</div>
                     <div className="text-xs text-zinc-500 uppercase tracking-widest mt-1">Perusahaan</div>
+                  </div>
+                  <div className="rounded-2xl bg-white/5 p-6 backdrop-blur-sm border border-white/10">
+                    <div className="text-3xl font-bold text-amber-500">{visitorCount}</div>
+                    <div className="text-xs text-zinc-500 uppercase tracking-widest mt-1">Total Kunjungan</div>
                   </div>
                 </div>
               </div>
@@ -896,12 +932,6 @@ export default function App() {
                       </p>
                     </CardContent>
                     <CardFooter className="flex flex-col gap-3 border-t border-zinc-100 pt-4">
-                      {job.postedBy && (
-                        <div className="flex w-full items-center gap-2 text-[10px] text-zinc-400">
-                          <User size={10} />
-                          Dipasang oleh: {job.postedBy}
-                        </div>
-                      )}
                       {job.externalUrl ? (
                         <Button 
                           render={<a href={job.externalUrl} target="_blank" rel="noopener noreferrer" />}
@@ -964,13 +994,6 @@ export default function App() {
                         {selectedJob.description}
                       </div>
                     </div>
-
-                    {selectedJob.postedBy && (
-                      <div className="flex items-center gap-2 border-t border-zinc-100 pt-6 text-sm text-zinc-400">
-                        <User size={16} />
-                        <span>Dipasang oleh: <span className="font-medium text-zinc-600">{selectedJob.postedBy}</span></span>
-                      </div>
-                    )}
                   </div>
 
                   <DialogFooter className="flex-col sm:flex-row gap-3">

@@ -39,6 +39,15 @@
     "/jobs/{jobId}": {
       "schema": "Job",
       "description": "Job listings"
+    },
+    "/stats/visitors": {
+      "schema": {
+        "type": "object",
+        "properties": {
+          "count": { "type": "number", "description": "Total number of visitors" }
+        }
+      },
+      "description": "Global statistics"
     }
   }
 }
